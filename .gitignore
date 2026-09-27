@@ -1,0 +1,45 @@
+# OS & Editor files
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/
+
+# Python & Venvs
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+lama_venv/
+*.egg-info/
+dist/
+build/
+
+# Credentials, Keys & Cookies (Private / Sensitive)
+apify_token
+canva_app.json
+canva_token.json
+ig_cookies.txt
+*.pem
+*.key
+.env
+.env.local
+
+# Large Binaries (Downloaded automatically by setup.sh)
+skills/recreate-reel/bin/ffmpeg
+skills/recreate-reel/bin/ffprobe
+skills/recreate-reel/bin/yt-dlp
+
+# Backups & Logs
+*.bak
+*.log
+panel/server.log
+research.json
+
+# Local Job Data & Workdirs
+Jobs/
+Masters/
+Thumbs/
+Work/
+PostIdeas/

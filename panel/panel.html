@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reel Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0B0B10; --panel: #14141C; --panel2: #1B1B25; --line: rgba(142,140,163,.16);
+    --text: #F2F1F7; --dim: #8E8CA3; --dimmer: #5D5B72;
+    --g1: #F0407E; --g2: #FF7A3D;
+    --grad: linear-gradient(135deg, #F0407E, #FF7A3D);
+    --ok: #3DDC97; --warn: #FFC24B; --err: #FF5D5D; --run: #5EA8FF;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { color-scheme: dark; }
+  body { background: var(--ink); color: var(--text); min-height: 100vh;
+         font: 400 14px/1.55 Poppins, -apple-system, sans-serif;
+         -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 34px 22px 90px; }
+
+  /* ── header ─────────────────────────────── */
+  header { display: flex; align-items: center; gap: 22px; margin-bottom: 22px; }
+  .mark { font-weight: 700; font-size: 21px; letter-spacing: -.02em; white-space: nowrap; }
+  .mark i { font-style: normal; background: var(--grad);
+            -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .tabs { display: flex; background: var(--panel); border: 1px solid var(--line);
+          border-radius: 99px; padding: 4px; }
+  .tabs button { border: 0; background: none; color: var(--dim); font: 500 13px Poppins;
+                 padding: 7px 20px; border-radius: 99px; cursor: pointer; }
+  .tabs button.on { background: var(--panel2); color: var(--text); }
+  .tabs button:focus-visible, button:focus-visible { outline: 2px solid var(--g2); outline-offset: 2px; }
+  .netstate { margin-left: auto; font-size: 12px; color: var(--dimmer); }
+  .netstate.bad { color: var(--err); }
+
+  /* ── buttons ────────────────────────────── */
+  .btn { border: 0; border-radius: 10px; cursor: pointer; font: 600 13.5px Poppins;
+         padding: 10px 20px; color: #fff; background: var(--grad); white-space: nowrap; }
+  .btn:hover { filter: brightness(1.08); }
+  .btn[disabled] { filter: grayscale(.6) brightness(.7); cursor: default; }
+  .btn.quiet { background: var(--panel2); color: var(--dim); border: 1px solid var(--line);
+               font-weight: 500; }
+  .btn.quiet:hover { color: var(--text); }
+  .btn.sm { padding: 6px 13px; font-size: 12px; border-radius: 8px; }
+  .btn.arm { background: rgba(255,93,93,.14); border-color: rgba(255,93,93,.45);
+             color: #FF8B8B; }
+
+  /* ── bars ───────────────────────────────── */
+  .bar { border-radius: 12px; padding: 11px 15px; font-size: 13px; margin-bottom: 14px;
+         display: flex; align-items: center; gap: 14px; }
+  .bar b { font-weight: 600; }
+  .bar .btn { margin-left: auto; }
+  .bar.err { background: rgba(255,93,93,.1); border: 1px solid rgba(255,93,93,.35); color: var(--err); }
+  .bar.hold { background: rgba(255,194,75,.07); border: 1px solid rgba(255,194,75,.3); color: #F5D089; }
+
+  /* ── studio: command deck ───────────────── */
+  .deck { background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+          padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .deck textarea, .deck input[type=text], .rbar input[type=text] { width: 100%;
+      background: var(--panel2); border: 1px solid var(--line); border-radius: 10px;
+      color: var(--text); font: 400 13.5px Poppins; padding: 11px 13px; outline: none;
+      resize: vertical; }
+  .deck textarea { min-height: 46px; }
+  .deck :focus, .rbar :focus { border-color: var(--g1); }
+  .deckrow { display: flex; gap: 10px; align-items: center; }
+  select { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px;
+           color: var(--dim); font: 500 12.5px Poppins; padding: 9px 12px; outline: none;
+           cursor: pointer; }
+  .deckhint { font-size: 12px; color: var(--dimmer); flex: 1; }
+
+  /* ── control bar ────────────────────────── */
+  .ctrl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+          margin: 22px 0 2px; }
+  .pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill { border: 1px solid var(--line); background: var(--panel); color: var(--dim);
+          font: 500 12px Poppins; padding: 6px 13px; border-radius: 99px; cursor: pointer; }
+  .pill.on { background: var(--panel2); color: var(--text); border-color: rgba(142,140,163,.34); }
+  .pill em { font-style: normal; color: var(--dimmer); margin-left: 5px; }
+  .pill.on em { color: var(--dim); }
+  .pill.att { border-color: rgba(255,194,75,.4); color: var(--warn); }
+  .spacer { flex: 1; }
+  .toggle { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--dim);
+            background: var(--panel); border: 1px solid var(--line); border-radius: 99px;
+            padding: 5px 13px 5px 11px; cursor: pointer; user-select: none; }
+  .toggle input { accent-color: var(--g1); margin: 0; cursor: pointer; }
+  .toggle select { border: 0; background: none; padding: 0 0 0 2px; font-size: 12px; }
+  .bulk { display: flex; gap: 8px; margin: 12px 0 0; flex-wrap: wrap; }
+
+  /* ── job cards ──────────────────────────── */
+  .jobs { margin-top: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .job { background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+         padding: 16px 16px 14px; }
+  .job.blocked { border-color: rgba(255,194,75,.34); }
+  .job.flash { animation: flash 1.4s ease; }
+  @keyframes flash { 0%,100% { border-color: var(--line); }
+                     25% { border-color: var(--g1); } }
+  .rise { animation: rise .25s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+  .jrow { display: flex; align-items: center; gap: 10px; }
+  .chip { font: 600 10.5px Poppins; letter-spacing: .08em; text-transform: uppercase;
+          padding: 3px 11px; border-radius: 99px; white-space: nowrap; }
+  .chip.queued  { background: var(--panel2); color: var(--dim); }
+  .chip.running { background: rgba(94,168,255,.13); color: var(--run); }
+  .chip.blocked { background: rgba(255,194,75,.13); color: var(--warn); }
+  .chip.done    { background: rgba(61,220,151,.13); color: var(--ok); }
+  .chip.failed  { background: rgba(255,93,93,.13); color: var(--err); }
+  .chip.paused  { background: rgba(142,140,163,.16); color: var(--dim); }
+  .chip.meta    { background: var(--panel2); color: var(--dimmer); text-transform: none;
+                  letter-spacing: 0; font-weight: 500; }
+  .jurl { flex: 1; color: var(--dim); font-size: 12.5px; overflow: hidden;
+          text-overflow: ellipsis; white-space: nowrap; }
+  .jtime { color: var(--dimmer); font-size: 12px; white-space: nowrap; }
+  .jnote { color: var(--dimmer); font-size: 12.5px; margin-top: 5px; }
+
+  /* signature: 11-frame filmstrip progress (one cell per pipeline step) */
+  .strip { display: flex; gap: 4px; margin: 13px 0 9px; }
+  .strip b { flex: 1; height: 16px; border-radius: 3px; background: var(--panel2);
+             border: 1px solid var(--line); transition: background .5s ease; }
+  .strip b.fill { background: var(--grad); border-color: transparent; }
+  .job.done .strip b.fill { background: var(--ok); }
+  .job.paused .strip b.fill, .job.failed .strip b.fill { filter: saturate(.25) brightness(.72); }
+  .strip b.here { animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .45; } }
+  .jlabel { font-weight: 500; font-size: 13px; }
+  .jact { color: var(--dimmer); font-size: 12px; margin-top: 3px; overflow: hidden;
+          text-overflow: ellipsis; white-space: nowrap; }
+  .gate { border: 1px solid rgba(255,194,75,.35); background: rgba(255,194,75,.06);
+          border-radius: 12px; padding: 12px; margin-top: 12px; }
+  .gate p { font-size: 13px; margin-bottom: 9px; }
+  .gate .jrow input { flex: 1; background: var(--panel2); border: 1px solid var(--line);
+      border-radius: 9px; color: var(--text); font: 400 13px Poppins; padding: 9px 12px; outline: none; }
+  pre.pane { background: #08080C; border: 1px solid var(--line); border-radius: 12px;
+             padding: 12px 14px; margin-top: 12px; font: 400 11.5px/1.6 Poppins;
+             color: #A8A6BE; max-height: 280px; overflow: auto; white-space: pre-wrap; }
+  .jactions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+  video.prev { width: 100%; max-width: 280px; border-radius: 12px; margin-top: 12px;
+               border: 1px solid var(--line); display: block; }
+  .slides { display: flex; gap: 6px; margin-top: 12px; overflow-x: auto;
+            padding-bottom: 4px; }
+  .slides img { height: 190px; border-radius: 10px; border: 1px solid var(--line);
+                flex: 0 0 auto; }
+
+  /* ── research ───────────────────────────── */
+  .rhead { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+  .rhead h2 { font-size: 16px; font-weight: 600; }
+  .ran { color: var(--dimmer); font-size: 12px; flex: 1; }
+  .rbar { background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+          padding: 13px 15px; display: flex; flex-direction: column; gap: 10px; }
+  .rbar .lbl { font: 600 11px Poppins; letter-spacing: .1em; text-transform: uppercase;
+               color: var(--dimmer); }
+  .rprog { color: var(--dim); font-size: 12.5px; margin: 12px 0 0; }
+  .rsect { margin-top: 26px; }
+  .rsect h3 { font-size: 12px; font-weight: 600; letter-spacing: .1em;
+              text-transform: uppercase; color: var(--dimmer); margin-bottom: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 14px; }
+  .cand { background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+          overflow: hidden; position: relative; }
+  .cand.approved { border-color: rgba(61,220,151,.5); }
+  .thumbwrap { display: block; position: relative; aspect-ratio: 9/16;
+               background: var(--panel2); overflow: hidden; }
+  .cand.post .thumbwrap { aspect-ratio: 4/5; }
+  .thumbwrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .rank { position: absolute; top: 8px; left: 8px; font: 700 13px Poppins; color: #fff;
+          background: rgba(11,11,16,.72); border-radius: 8px; padding: 2px 9px;
+          backdrop-filter: blur(4px); }
+  .cand:nth-child(1) .rank { background: var(--grad); }
+  .metric { position: absolute; bottom: 0; left: 0; right: 0; padding: 22px 10px 8px;
+            background: linear-gradient(transparent, rgba(11,11,16,.85));
+            font: 600 14px Poppins; color: #fff; }
+  .metric small { display: block; font: 500 10.5px Poppins; color: rgba(255,255,255,.65);
+                  letter-spacing: .06em; text-transform: uppercase; }
+  .cinfo { padding: 10px 11px 11px; }
+  .cacct { font: 500 12px Poppins; color: var(--dim); overflow: hidden;
+           text-overflow: ellipsis; white-space: nowrap; }
+  .cbtns { display: flex; gap: 7px; margin-top: 9px; }
+  .cbtns .btn { flex: 1; padding: 7px 0; font-size: 12px; }
+  .cbtns .btn.more { flex: 0 0 32px; }
+  .cstate { margin-top: 9px; font: 500 12px Poppins; text-align: center; padding: 5px 0; }
+  .cstate.ok { color: var(--ok); }
+  .cstate small { display: block; color: var(--dimmer); font-size: 11px; font-weight: 400;
+                  margin-top: 2px; white-space: normal; }
+  .cstate button { border: 0; background: none; color: var(--dimmer); font: 500 11px Poppins;
+                   cursor: pointer; text-decoration: underline; padding: 2px 4px; }
+  .cust { margin-top: 9px; display: flex; flex-direction: column; gap: 6px; }
+  .cust select, .cust input { width: 100%; background: var(--panel2); border: 1px solid var(--line);
+      border-radius: 8px; color: var(--text); font: 400 11.5px Poppins; padding: 7px 9px; outline: none; }
+  .empty { color: var(--dimmer); text-align: center; padding: 70px 0 40px; font-size: 13.5px; }
+  .hidden { display: none; }
+
+  /* ── toast ──────────────────────────────── */
+  #toast { position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 20px);
+           background: var(--panel2); border: 1px solid var(--line); color: var(--text);
+           border-radius: 99px; padding: 10px 20px; font: 500 13px Poppins;
+           opacity: 0; pointer-events: none; transition: all .22s ease; z-index: 9; }
+  #toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+  .hdr-right { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+  .apify-btn { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; font: 500 12px Poppins; border-radius: 99px; }
+  .dot-ok { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); display: inline-block; }
+  .dot-warn { width: 7px; height: 7px; border-radius: 50%; background: #eab308; display: inline-block; }
+
+  /* ── apify modal ── */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.72); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 999; }
+  .modal-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; width: 440px; max-width: 90vw; padding: 22px; box-shadow: 0 16px 40px rgba(0,0,0,0.5); }
+  .modal-card h3 { margin: 0 0 8px; font: 600 16px Poppins; color: var(--text); }
+  .modal-card p { margin: 0 0 16px; font: 400 12px Poppins; color: var(--dim); line-height: 1.5; }
+  .modal-input-wrap { display: flex; gap: 8px; margin-bottom: 16px; }
+  .modal-input-wrap input { flex: 1; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; color: var(--text); padding: 8px 12px; font: 12px monospace; outline: none; }
+  .modal-card .mfoot { display: flex; justify-content: flex-end; gap: 8px; align-items: center; }
+  .mstatus { font: 400 11.5px Poppins; color: var(--ok); margin-right: auto; }
+
+  /* ── source clip origin box ── */
+  .jsource-box { margin-top: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 9px; padding: 10px 14px; }
+  .jsource-header { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+  .jsource-badge { font: 600 10.5px Poppins; text-transform: uppercase; letter-spacing: 0.5px; color: #38bdf8; background: rgba(56, 189, 248, 0.12); padding: 2px 7px; border-radius: 4px; display: inline-flex; align-items: center; gap: 5px; }
+  .jsource-body { color: var(--text); line-height: 1.5; white-space: pre-wrap; word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; }
+  .jsource-body a { color: #38bdf8; text-decoration: underline; text-underline-offset: 2px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="mark">Reel <i>Studio</i></div>
+    <nav class="tabs" role="tablist">
+      <button id="tab-studio" class="on" onclick="setTab('studio')">Studio</button>
+      <button id="tab-research" onclick="setTab('research')">Research</button>
+    </nav>
+    <div class="hdr-right">
+      <button class="btn sm quiet apify-btn" id="apify-btn" onclick="openApifyModal()">
+        <span id="apify-badge" class="dot-warn"></span>
+        <span>Apify Key</span>
+      </button>
+      <span class="netstate" id="netstate">connected</span>
+    </div>
+  </header>
+
+  <div class="bar hold hidden" id="recover">
+    <span id="recovertext"></span>
+    <button class="btn sm" onclick="resumeAll()">Resume all</button>
+  </div>
+
+  <!-- ── STUDIO ── -->
+  <section id="view-studio">
+    <div class="deck">
+      <textarea id="links" placeholder="Paste reel or post links — Instagram reels, posts &amp; carousels (/p/ links), TikTok, Shorts. One per line."></textarea>
+      <input type="text" id="note" placeholder="Instructions (optional) — e.g. no scrim, warmer grade / skip slide 3">
+      <div class="deckrow">
+        <select id="model"></select>
+        <span class="deckhint" id="addhint">Each job runs in its own resumable background session. IG /p/ links recreate as posts; posts run one at a time. ⌘↵ to start.</span>
+        <button class="btn" onclick="addJobs()">Recreate</button>
+      </div>
+    </div>
+
+    <div class="ctrl">
+      <div class="pills" id="pills"></div>
+      <span class="spacer"></span>
+      <button class="pill" id="queuebtn" onclick="toggleQueue()">Pause queue</button>
+      <label class="toggle" title="How many reels render at once">lanes
+        <select id="lanes" onchange="setLanes(this.value)">
+          <option>1</option><option>2</option><option>3</option>
+          <option>4</option><option>5</option><option>6</option>
+        </select>
+      </label>
+      <label class="toggle" title="Relaunch a session automatically if it drops mid-render">
+        <input type="checkbox" id="autores" onchange="setAuto(this.checked)"> auto-resume
+      </label>
+    </div>
+    <div class="bulk" id="bulk"></div>
+
+    <div class="jobs" id="jobs"></div>
+    <div class="empty hidden" id="jobsempty">Nothing here yet — paste a link above, or approve a reel in Research.</div>
+  </section>
+
+  <!-- ── RESEARCH ── -->
+  <section id="view-research" class="hidden">
+    <div class="rhead">
+      <h2>Today's candidates</h2>
+      <span class="ran" id="ran"></span>
+      <button class="btn" id="runresearch" onclick="runResearch()">Run research</button>
+    </div>
+    <div class="rbar">
+      <span class="lbl">Approvals recreate with</span>
+      <div class="deckrow">
+        <select id="rmodel" onchange="saveRDefaults()"></select>
+        <input type="text" id="rnote" oninput="saveRDefaults()"
+               placeholder="Instructions sent with every approval (optional) — e.g. keep original audio, tighter cuts">
+      </div>
+    </div>
+    <div class="rprog" id="rprog"></div>
+    <div class="rsect">
+      <h3>Reels · ranked by views</h3>
+      <div class="grid" id="reelgrid"><div class="empty">No research yet — run it to scan the last 10 posts of every source account.</div></div>
+    </div>
+    <div class="rsect">
+      <h3>Posts · ranked by likes</h3>
+      <div class="grid" id="postgrid"></div>
+    </div>
+  </section>
+</div>
+
+<!-- ── apify configuration modal ── -->
+<div id="apify-modal" class="modal-backdrop hidden" onclick="if(event.target===this)closeApifyModal()">
+  <div class="modal-card">
+    <h3>Apify API Configuration</h3>
+    <p>Set your Apify API Token to fetch Instagram posts, carousels, and metadata. Your token is stored locally on this machine.</p>
+    <div class="modal-input-wrap">
+      <input type="password" id="apify-token-input" placeholder="apify_api_..." autocomplete="off">
+      <button class="btn quiet sm" onclick="toggleApifyVisibility()" title="Show/Hide">👁</button>
+    </div>
+    <div class="mfoot">
+      <span id="apify-status" class="mstatus"></span>
+      <button class="btn quiet sm" onclick="closeApifyModal()">Cancel</button>
+      <button class="btn sm" onclick="saveApifyToken()">Save Token</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const MODELS = [['', 'Default'], ['claude-fable-5', 'Fable 5'], ['claude-opus-5', 'Opus 5'],
+                ['claude-sonnet-5', 'Sonnet 5'], ['claude-haiku-4-5-20251001', 'Haiku 4.5']];
+const FILTERS = [['all','All'], ['active','Active'], ['attention','Needs you'],
+                 ['stopped','Stopped'], ['done','Delivered']];
+const KEYS = ['head','note','strip','label','act','source_box','gate','pane','video','btns'];
+const LS = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const LSet = (k,v) => { try { localStorage.setItem(k,v); } catch (e) {} };
+
+const S = { tab: 'studio', jobs: [], settings: {}, research: null,
+            filter: LS('rs.filter') || 'all', openPane: {}, openPrev: {}, pane: {},
+            cust: {}, armed: null, armTimer: null, timer: null, lastResearch: '' };
+
+/* ── helpers ── */
+function esc(s) { return (s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtN(n) { if (n >= 1e6) return (n/1e6).toFixed(n>=1e7?0:1)+'M';
+                   if (n >= 1e3) return (n/1e3).toFixed(n>=1e5?0:1)+'K'; return String(n||0); }
+function modelName(m) { return (MODELS.find(x => x[0] === m) || [0, m])[1]; }
+function fmtElapsed(j) {
+  if (!j.started) return j.state === 'queued' ? 'queued' : '';
+  const s = Math.max(0, Math.round((j.ended || Date.now()/1000) - j.started));
+  return `${Math.floor(s/60)}m ${String(s%60).padStart(2,'0')}s`;
+}
+function fillSelect(el, value) {
+  el.innerHTML = MODELS.map(([v, n]) =>
+    `<option value="${v}"${v === value ? ' selected' : ''}>${v ? n : 'Model: default'}</option>`).join('');
+}
+let toastT;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600);
+}
+/* two-step confirm — no browser modals, no accidental restarts */
+function arm(key, label) {
+  if (S.armed === key) return true;
+  S.armed = key; clearTimeout(S.armTimer);
+  S.armTimer = setTimeout(() => { S.armed = null; render(); }, 4000);
+  render(); toast(label); return false;
+}
+
+/* live elapsed timer — updates text only, never re-renders the DOM */
+setInterval(() => {
+  document.querySelectorAll('.jtime[data-s]').forEach(el => {
+    const s = parseFloat(el.dataset.s); if (!s) return;
+    const e = parseFloat(el.dataset.e) || Date.now() / 1000;
+    const sec = Math.max(0, Math.round(e - s));
+    el.textContent = `${Math.floor(sec/60)}m ${String(sec%60).padStart(2,'0')}s`;
+  });
+}, 1000);
+
+function setTab(t) {
+  S.tab = t;
+  document.getElementById('view-studio').classList.toggle('hidden', t !== 'studio');
+  document.getElementById('view-research').classList.toggle('hidden', t !== 'research');
+  document.getElementById('tab-studio').classList.toggle('on', t === 'studio');
+  document.getElementById('tab-research').classList.toggle('on', t === 'research');
+  poll();
+}
+
+/* ── studio actions ── */
+async function post(url, body) {
+  const r = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'},
+                             body: JSON.stringify(body || {})});
+  return r.json().catch(() => ({}));
+}
+async function addJobs() {
+  const box = document.getElementById('links'), hint = document.getElementById('addhint');
+  const note = document.getElementById('note').value, model = document.getElementById('model').value;
+  LSet('rs.model', model);
+  const urls = box.value.split(/\s+/).filter(Boolean)
+    .map(u => /^https?:\/\//.test(u) ? u : (u.includes('.') ? 'https://' + u : '')).filter(Boolean);
+  if (!urls.length) { hint.textContent = 'No link found — paste a reel URL first.'; return; }
+  const res = await post('/api/jobs', {jobs: urls.map(u => ({url: u, note, model}))});
+  hint.textContent = res.created?.length
+    ? `Added ${res.created.length} to the queue.` : (res.error || 'That link was rejected — check the URL.');
+  if (res.created?.length) toast(`${res.created.length} job${res.created.length>1?'s':''} queued`);
+  box.value = ''; document.getElementById('note').value = '';
+  poll();
+}
+async function act(id, action, body) { await post(`/api/jobs/${id}/${action}`, body); S.armed = null; poll(); }
+async function guarded(id, action, label) {
+  if (!arm(id + ':' + action, label)) return;
+  S.armed = null; await act(id, action);
+}
+async function bulk(action, ids, label) {
+  if (!ids.length) return;
+  if (label && !arm('bulk:' + action, label)) return;
+  S.armed = null;
+  await post('/api/bulk', {action, ids});
+  toast(`${action === 'remove' ? 'Cleared' : 'Resumed'} ${ids.length}`);
+  poll();
+}
+const resumables = () => S.jobs.filter(j => (j.state === 'paused' || j.state === 'failed') && j.resumable);
+function resumeAll() { bulk('resume', resumables().map(j => j.id)); }
+async function toggleQueue() { await post('/api/settings', {queue_paused: !S.settings.queue_paused}); poll(); }
+async function setLanes(v) { await post('/api/settings', {max_concurrent: +v}); poll(); }
+async function setAuto(v) { await post('/api/settings', {auto_resume: !!v}); poll(); }
+function setFilter(f) { S.filter = f; LSet('rs.filter', f); render(); }
+function togglePane(id) { S.openPane[id] = !S.openPane[id]; poll(true); }
+function togglePrev(id) { S.openPrev[id] = !S.openPrev[id]; render(); }
+function flashJob(id) {
+  setTab('studio');
+  setTimeout(() => {
+    const n = document.querySelector(`.job[data-id="${id}"]`);
+    if (!n) return;
+    n.scrollIntoView({behavior: 'smooth', block: 'center'});
+    n.classList.add('flash'); setTimeout(() => n.classList.remove('flash'), 1500);
+  }, 60);
+}
+
+/* ── job card ── */
+function stripHTML(j) {
+  let cells = '';
+  const live = j.state === 'running' || j.state === 'blocked';
+  const total = j.total || 11;
+  for (let i = 1; i <= total; i++)
+    cells += `<b class="${(j.state === 'done' || i <= j.step) ? 'fill' : ''}${
+      live && i === j.step + 1 ? ' here' : ''}"></b>`;
+  return `<div class="strip">${cells}</div>`;
+}
+function sections(j) {
+  const arm1 = k => S.armed === j.id + ':' + k;
+  const B = (action, text, primary) =>
+    `<button class="btn${primary ? '' : ' quiet'} sm" onclick="act('${j.id}','${action}')">${text}</button>`;
+  const G = (action, text, armText) =>
+    `<button class="btn quiet sm${arm1(action) ? ' arm' : ''}" onclick="guarded('${j.id}','${action}','${armText}')">${
+      arm1(action) ? 'Sure?' : text}</button>`;
+
+  const T = j.total || 11, isPost = j.kind === 'post';
+  const label = j.state === 'done'
+      ? (isPost ? `Delivered — ${j.slides} slide${j.slides === 1 ? '' : 's'} in Masters/Posts`
+                : 'Delivered — master in Reel Masters')
+    : j.state === 'queued' ? (S.settings.queue_paused ? 'Held — the queue is paused' : 'Waiting in queue')
+    : j.state === 'paused' ? (j.step ? `Paused at step ${j.step} of ${T}${j.label ? ' — ' + esc(j.label) : ''}` : 'Paused')
+    : j.state === 'failed' ? (j.resumable ? `Stopped at step ${j.step || '?'} of ${T} — resumable` : 'Stopped')
+    : (j.label ? `Step ${j.step} of ${T} — ${esc(j.label)}` : 'Working…');
+
+  const btns = [];
+  if (j.state === 'running' || j.state === 'blocked') {
+    btns.push(B('pause', 'Pause'));
+    btns.push(G('stop', 'Stop', 'Stop this reel? Click again to confirm.'));
+  }
+  if (j.state === 'paused' || j.state === 'failed')
+    btns.push(B('resume', j.resumable ? 'Resume' : 'Start', true));
+  if (j.state === 'queued') {
+    btns.push(B('next', 'Run next'));
+    btns.push(B('pause', 'Hold'));
+  }
+  if (j.session_alive) btns.push(B('terminal', 'Open Terminal'));
+  if (j.session_alive)
+    btns.push(`<button class="btn quiet sm" onclick="togglePane('${j.id}')">${
+      S.openPane[j.id] ? 'Hide live view' : 'Live view'}</button>`);
+  if (j.has_video || j.slides)
+    btns.push(`<button class="btn quiet sm" onclick="togglePrev('${j.id}')">${
+      S.openPrev[j.id] ? 'Hide preview' : 'Preview'}</button>`);
+  if (j.state === 'done' || j.has_video || j.slides) btns.push(B('reveal', 'Show in Finder'));
+  if (j.state !== 'queued' && j.state !== 'running' && j.state !== 'blocked')
+    btns.push(G('restart', 'Restart', 'Restart from step 1? Click again to confirm.'));
+  if (j.state === 'done' && j.session_alive)
+    btns.push(G('kill', 'End session', 'End this session? Click again to confirm.'));
+  if (j.state !== 'running' && j.state !== 'blocked')
+    btns.push(G('remove', 'Remove', 'Remove this card? Files stay in ~/ReelStudio.'));
+
+  return {
+    head: `<div class="jrow"><span class="chip ${j.state}">${j.state}</span>
+      ${isPost ? '<span class="chip meta">post</span>' : ''}
+      ${j.model ? `<span class="chip meta">${esc(modelName(j.model))}</span>` : ''}
+      ${j.runs > 1 ? `<span class="chip meta">run ${j.runs}</span>` : ''}
+      <span class="jurl">${esc(j.url)}</span>
+      <span class="jtime" data-s="${j.started || ''}" data-e="${j.ended || ''}">${fmtElapsed(j)}</span></div>`,
+    note: j.note ? `<div class="jnote">“${esc(j.note)}”</div>` : '',
+    strip: stripHTML(j),
+    label: `<div class="jlabel">${label}</div>`,
+    act: `<div class="jact">${esc(j.activity)}</div>`,
+    source_box: j.source_origin ? `
+      <div class="jsource-box">
+        <div class="jsource-header">
+          <span class="jsource-badge">🎬 Source Clip Origin</span>
+        </div>
+        <div class="jsource-body">${renderSourceOrigin(j.source_origin)}</div>
+      </div>` : '',
+    gate: (j.state === 'blocked' && j.question)
+      ? `<div class="gate"><p>${esc(j.question)}</p>
+          <div class="jrow"><input id="ans-${j.id}" placeholder="Type your answer and press Enter"
+            onkeydown="if(event.key==='Enter')act('${j.id}','answer',{text:this.value})">
+          <button class="btn sm" onclick="act('${j.id}','answer',{text:document.getElementById('ans-${j.id}').value})">Send</button></div></div>` : '',
+    pane: S.openPane[j.id] ? `<pre class="pane">${esc((S.pane[j.id] || ['connecting…']).join('\n'))}</pre>` : '',
+    video: !S.openPrev[j.id] ? ''
+      : j.slides ? `<div class="slides">${Array.from({length: j.slides}, (_, i) =>
+          `<img src="/api/jobs/${j.id}/slide/${i + 1}" loading="lazy" alt="slide ${i + 1}">`).join('')}</div>`
+      : j.has_video ? `<video class="prev" src="/api/jobs/${j.id}/video" controls playsinline preload="metadata"></video>` : '',
+    btns: `<div class="jactions">${btns.join('')}</div>`,
+  };
+}
+/* patch one section only when its markup actually changed — keeps focus,
+   video playback, pane scroll and the elapsed ticker intact */
+function patch(card, key, html) {
+  const el = card.querySelector(`[data-k="${key}"]`);
+  if (el.dataset.h === html) return;
+  if (el.contains(document.activeElement)) return;
+  let atEnd = false;
+  const old = key === 'pane' ? el.querySelector('pre') : null;
+  if (old) atEnd = old.scrollHeight - old.scrollTop - old.clientHeight < 30;
+  el.innerHTML = html; el.dataset.h = html;
+  if (key === 'pane') {
+    const p = el.querySelector('pre');
+    if (p && (atEnd || !old)) p.scrollTop = p.scrollHeight;
+  }
+}
+function renderJobs(list) {
+  const el = document.getElementById('jobs');
+  const em = document.getElementById('jobsempty');
+  em.classList.toggle('hidden', list.length > 0);
+  if (!list.length) em.textContent = S.jobs.length
+    ? 'Nothing in this filter right now.'
+    : 'Nothing here yet — paste a link above, or approve a reel in Research.';
+  const want = new Set(list.map(j => j.id));
+  [...el.children].forEach(n => { if (!want.has(n.dataset.id)) n.remove(); });
+  list.forEach((j, i) => {
+    let card = el.querySelector(`.job[data-id="${j.id}"]`);
+    if (!card) {
+      card = document.createElement('div');
+      card.className = 'job rise'; card.dataset.id = j.id;
+      card.innerHTML = KEYS.map(k => `<div data-k="${k}"></div>`).join('');
+      el.appendChild(card);
+    }
+    if (card.dataset.state !== j.state) {
+      card.dataset.state = j.state;
+      card.className = 'job ' + j.state;
+    }
+    const s = sections(j);
+    KEYS.forEach(k => patch(card, k, s[k]));
+    if (el.children[i] !== card) el.insertBefore(card, el.children[i] || null);
+  });
+}
+
+/* ── chrome: filters, queue controls, recovery banner ── */
+function renderChrome() {
+  const c = {all: S.jobs.length,
+             active: S.jobs.filter(j => ['running','queued','blocked'].includes(j.state)).length,
+             attention: S.jobs.filter(j => j.state === 'blocked').length,
+             stopped: S.jobs.filter(j => ['paused','failed'].includes(j.state)).length,
+             done: S.jobs.filter(j => j.state === 'done').length};
+  document.getElementById('pills').innerHTML = FILTERS.map(([k, n]) =>
+    `<button class="pill${S.filter === k ? ' on' : ''}${k === 'attention' && c.attention ? ' att' : ''}"
+      onclick="setFilter('${k}')">${n}<em>${c[k]}</em></button>`).join('');
+
+  const qb = document.getElementById('queuebtn');
+  qb.textContent = S.settings.queue_paused ? 'Queue paused — start' : 'Pause queue';
+  qb.className = 'pill' + (S.settings.queue_paused ? ' on att' : '');
+  const lanes = document.getElementById('lanes'), auto = document.getElementById('autores');
+  if (document.activeElement !== lanes) lanes.value = String(S.settings.max_concurrent || 3);
+  if (document.activeElement !== auto) auto.checked = !!S.settings.auto_resume;
+
+  const res = resumables();
+  const rec = document.getElementById('recover');
+  rec.classList.toggle('hidden', res.length === 0);
+  if (res.length) document.getElementById('recovertext').innerHTML =
+    `<b>${res.length} job${res.length > 1 ? 's' : ''}</b> stopped part-way — each one still has its session saved, so Resume picks up at the step it reached.`;
+
+  const doneIds = S.jobs.filter(j => j.state === 'done').map(j => j.id);
+  const b = [];
+  if (res.length > 1) b.push(`<button class="btn quiet sm" onclick="resumeAll()">Resume all ${res.length}</button>`);
+  if (doneIds.length) b.push(`<button class="btn quiet sm${S.armed === 'bulk:remove' ? ' arm' : ''}"
+    onclick="bulk('remove', ${JSON.stringify(doneIds).replace(/"/g, '&quot;')}, 'Clear ${doneIds.length} delivered card${doneIds.length>1?'s':''}? Files stay in ~/ReelStudio.')">${
+    S.armed === 'bulk:remove' ? 'Sure?' : `Clear ${doneIds.length} delivered`}</button>`);
+  document.getElementById('bulk').innerHTML = b.join('');
+}
+function visible() {
+  const f = S.filter;
+  if (f === 'all') return S.jobs;
+  if (f === 'active') return S.jobs.filter(j => ['running','queued','blocked'].includes(j.state));
+  if (f === 'attention') return S.jobs.filter(j => j.state === 'blocked');
+  if (f === 'stopped') return S.jobs.filter(j => ['paused','failed'].includes(j.state));
+  return S.jobs.filter(j => j.state === 'done');
+}
+
+/* ── research ── */
+function rDefaults() {
+  return {model: document.getElementById('rmodel').value,
+          note: document.getElementById('rnote').value.trim()};
+}
+function saveRDefaults() {
+  const d = rDefaults(); LSet('rs.rmodel', d.model); LSet('rs.rnote', d.note);
+}
+async function runResearch() {
+  document.getElementById('runresearch').disabled = true;
+  await post('/api/research/run'); toast('Scanning source accounts…'); poll();
+}
+async function ract(code, action, over) {
+  const d = over || rDefaults();
+  await post('/api/research/act', {code, action, note: d.note || '', model: d.model || ''});
+  S.cust[code] = false; S.lastResearch = '';
+  if (action === 'approve') toast('Queued in Studio' + (d.model ? ` on ${modelName(d.model)}` : ''));
+  poll();
+}
+function toggleCust(code) { S.cust[code] = !S.cust[code]; renderResearch(S.research); }
+function approveCust(code) {
+  ract(code, 'approve', {model: document.getElementById('cm-' + code).value,
+                         note: document.getElementById('cn-' + code).value.trim()});
+}
+function candCard(c, pos) {
+  const metric = c.kind === 'reel' ? `${fmtN(c.views)}<small>views</small>`
+                                   : `${fmtN(c.likes)}<small>likes</small>`;
+  const img = c.has_thumb ? `<img src="/api/research/thumb/${c.code}" alt="" loading="lazy">` : '';
+  let foot;
+  if (c.status === 'approved' && c.job_id) {
+    foot = `<div class="cstate ok">Queued ✓
+      <small>${c.model ? esc(modelName(c.model)) : 'default model'}${c.note ? ' · “' + esc(c.note) + '”' : ''}</small>
+      <button onclick="flashJob('${c.job_id}')">view in Studio</button></div>`;
+  } else if (c.status === 'approved') {
+    foot = `<div class="cstate ok">Saved to Post Ideas ✓</div>`;
+  } else if (S.cust[c.code]) {
+    const d = rDefaults();
+    foot = `<div class="cust">
+      <select id="cm-${c.code}">${MODELS.map(([v, n]) =>
+        `<option value="${v}"${v === d.model ? ' selected' : ''}>${v ? n : 'Default model'}</option>`).join('')}</select>
+      <input id="cn-${c.code}" value="${esc(d.note)}" placeholder="Instructions for this one">
+      <div class="cbtns"><button class="btn sm" onclick="approveCust('${c.code}')">Recreate</button>
+        <button class="btn quiet sm" onclick="toggleCust('${c.code}')">✕</button></div></div>`;
+  } else {
+    foot = `<div class="cbtns">
+      <button class="btn sm" onclick="ract('${c.code}','approve')">Approve</button>
+      <button class="btn quiet sm more" title="Choose model + instructions for this one"
+        onclick="toggleCust('${c.code}')">⋯</button>
+      <button class="btn quiet sm" onclick="ract('${c.code}','dismiss')">✕</button></div>`;
+  }
+  return `<div class="cand ${c.kind} ${c.status}">
+    <a class="thumbwrap" href="${esc(c.url)}" target="_blank" rel="noopener">${img}
+      <span class="rank">${pos}</span><div class="metric">${metric}</div></a>
+    <div class="cinfo"><div class="cacct">@${esc(c.account)}</div>${foot}</div></div>`;
+}
+function renderResearch(d) {
+  if (!d) return;
+  S.research = d;
+  document.getElementById('ran').textContent = d.ran_at
+    ? `last run ${new Date(d.ran_at*1000).toLocaleString([], {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}`
+      + (d.errors?.length ? ` · ${d.errors.length} account(s) failed` : '') : '';
+  document.getElementById('rprog').textContent = d.running ? `Scanning… ${d.progress}` : '';
+  document.getElementById('runresearch').disabled = !!d.running;
+  // Rejected candidates disappear; the next-ranked one from the pool takes the slot.
+  const reels = (d.reels || []).filter(c => c.status !== 'dismissed').slice(0, 10);
+  const posts = (d.posts || []).filter(c => c.status !== 'dismissed').slice(0, 4);
+  const rg = document.getElementById('reelgrid'), pg = document.getElementById('postgrid');
+  const html = reels.length ? reels.map((c, i) => candCard(c, i + 1)).join('')
+    : '<div class="empty">No research yet — run it to scan the last 10 posts of every source account.</div>';
+  if (!rg.contains(document.activeElement) && rg.dataset.h !== html) { rg.innerHTML = html; rg.dataset.h = html; }
+  const ph = posts.length ? posts.map((c, i) => candCard(c, i + 1)).join('') : '';
+  if (!pg.contains(document.activeElement) && pg.dataset.h !== ph) { pg.innerHTML = ph; pg.dataset.h = ph; }
+}
+
+/* ── render + poll ── */
+function render() { renderChrome(); if (S.tab === 'studio') renderJobs(visible()); }
+function net(ok) {
+  const n = document.getElementById('netstate');
+  n.textContent = ok ? 'connected' : 'server offline — relaunch Reel Studio';
+  n.classList.toggle('bad', !ok);
+}
+function renderSourceOrigin(txt) {
+  if (!txt) return '';
+  const lines = esc(txt).split('\n');
+  return lines.map(line => {
+    return line.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+  }).join('<br>');
+}
+
+let apifyTokenConfigured = false;
+
+async function checkApifyStatus() {
+  try {
+    const res = await (await fetch('/api/apify-token')).json();
+    apifyTokenConfigured = !!res.configured;
+    updateApifyBadge(apifyTokenConfigured);
+    const inp = document.getElementById('apify-token-input');
+    if (inp && res.configured) {
+      inp.placeholder = res.masked || 'Token configured';
+    }
+  } catch (e) {}
+}
+
+function updateApifyBadge(configured) {
+  apifyTokenConfigured = configured;
+  const b = document.getElementById('apify-badge');
+  const btn = document.getElementById('apify-btn');
+  if (b) b.className = configured ? 'dot-ok' : 'dot-warn';
+  if (btn) btn.title = configured ? 'Apify API Key is configured' : 'Apify API Key missing (needed for Instagram post fetching)';
+}
+
+function openApifyModal() {
+  document.getElementById('apify-modal').classList.remove('hidden');
+  const st = document.getElementById('apify-status');
+  st.textContent = apifyTokenConfigured ? '✓ Token configured' : '';
+  st.style.color = 'var(--ok)';
+  const inp = document.getElementById('apify-token-input');
+  inp.value = '';
+  inp.focus();
+}
+
+function closeApifyModal() {
+  document.getElementById('apify-modal').classList.add('hidden');
+}
+
+function toggleApifyVisibility() {
+  const inp = document.getElementById('apify-token-input');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+async function saveApifyToken() {
+  const inp = document.getElementById('apify-token-input');
+  const tok = inp.value.trim();
+  const st = document.getElementById('apify-status');
+  if (!tok) {
+    st.textContent = 'Please enter a token';
+    st.style.color = '#ef4444';
+    return;
+  }
+  st.textContent = 'Saving…';
+  st.style.color = 'var(--text)';
+  try {
+    const res = await (await fetch('/api/apify-token', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({token: tok})
+    })).json();
+    if (res.ok) {
+      st.textContent = '✓ Saved successfully!';
+      st.style.color = 'var(--ok)';
+      apifyTokenConfigured = true;
+      updateApifyBadge(true);
+      inp.value = '';
+      inp.placeholder = res.masked || 'Token configured';
+      toast('Apify API key saved');
+      setTimeout(closeApifyModal, 900);
+    } else {
+      st.textContent = 'Failed to save';
+      st.style.color = '#ef4444';
+    }
+  } catch (e) {
+    st.textContent = 'Network error';
+    st.style.color = '#ef4444';
+  }
+}
+
+async function poll(force) {
+  clearTimeout(S.timer);
+  try {
+    const st = await (await fetch('/api/state')).json();
+    S.jobs = st.jobs; S.settings = st.settings;
+    if (st.apify_configured !== undefined) updateApifyBadge(st.apify_configured);
+    for (const j of S.jobs) {
+      if (!S.openPane[j.id] || !j.session_alive) continue;
+      try { S.pane[j.id] = (await (await fetch(`/api/jobs/${j.id}/pane`)).json()).lines; } catch (e) {}
+    }
+    render();
+    if (S.tab === 'research') {
+      const raw = await (await fetch('/api/research')).text();
+      if (force || raw !== S.lastResearch) { S.lastResearch = raw; renderResearch(JSON.parse(raw)); }
+    }
+    net(true);
+  } catch (e) { net(false); }
+  // adaptive cadence: tight while something is moving, lazy when idle, off in the background
+  const busy = S.jobs.some(j => ['running','blocked','queued'].includes(j.state)) ||
+               (S.research && S.research.running);
+  if (!document.hidden) S.timer = setTimeout(poll, busy ? 1800 : 6000);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(true); });
+document.getElementById('links').addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); addJobs(); }
+});
+fillSelect(document.getElementById('model'), LS('rs.model') || '');
+fillSelect(document.getElementById('rmodel'), LS('rs.rmodel') || '');
+document.getElementById('rnote').value = LS('rs.rnote') || '';
+checkApifyStatus();
+poll();
+</script>
+</body>
+</html>

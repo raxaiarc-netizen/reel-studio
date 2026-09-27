@@ -1,0 +1,6 @@
+{
+ "queue_paused": true,
+ "max_concurrent": 3,
+ "auto_resume": true,
+ "apify_token": ""
+}
